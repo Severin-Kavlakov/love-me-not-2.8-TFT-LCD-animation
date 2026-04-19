@@ -1,9 +1,6 @@
-// IMPORTANT: ELEGOO_TFTLCD LIBRARY MUST BE SPECIFICALLY CONFIGURED FOR EITHER THE TFT SHIELD OR THE BREAKOUT BOARD.
-// SEE RELEVANT COMMENTS IN Elegoo_TFTLCD.h FOR SETUP.
-//Technical support:goodtft@163.com
-
 #include <Adafruit_GFX.h>  // Core graphics library
 #include <MCUFRIEND_kbv.h> // Hardware specific library
+MCUFRIEND_kbv tft;
 
 // The control pins for the LCD can be assigned to any digital or analog pins...
 // but we'll use the analog pins as this allows us to double up the pins with the touch screen (see the TFT paint example).
@@ -11,23 +8,7 @@
 #define LCD_CD A2    // Command/Data -> A2
 #define LCD_WR A1    // LCD Write    -> A1
 #define LCD_RD A0    // LCD Read     -> A0
-#define LCD_RESET A4 // Can alternately just connect to Arduino's reset pin
-
-/* When using the BREAKOUT BOARD only, use these 8 data lines to the LCD:
-  For the Arduino Uno, Duemilanove, Diecimila, etc.:
-    D0 connects to digital pin 8  (Notice these are
-    D1 connects to digital pin 9   NOT in order!)
-    D2 connects to digital pin 2
-    D3 connects to digital pin 3
-    D4 connects to digital pin 4
-    D5 connects to digital pin 5
-    D6 connects to digital pin 6
-    D7 connects to digital pin 7
-  For the Arduino Mega, use digital pins 22 through 29
-  (on the 2-row header at the end of the board). 
-*/
-
-MCUFRIEND_kbv tft;
+#define LCD_RESET A4 // Can alternately connect to Arduino's reset pin
 
 #define	BLACK   0x0000 // https://rgbcolorpicker.com/565
 #define WHITE   0xFFFF
@@ -38,8 +19,10 @@ MCUFRIEND_kbv tft;
 #define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 
+const uint8_t displayWidth=tft.width(), displayHeight = tft.height();
+
 const uint8_t numFrames = 11;
-char* lyrics[numFrames] = {
+char* lyrics[numFrames] = { //https://www.geeksforgeeks.org/c/array-of-strings-in-c/
   "AND",
   "OHH",
   "it's hard\nto see\nyou",
@@ -52,6 +35,36 @@ char* lyrics[numFrames] = {
   "when I get you",
   "EVERYWHERE"
 };
+uint8_t sizes[numFrames] = {0};
+
+uint8_t findMaxTextSize(const char* text) {
+  uint16_t x  = 0, y  = 0, width=0, height=0;
+  int16_t  x1 = 0, y1 = 0;
+  uint8_t maxSize=1;
+  uint8_t currentSize=1;
+
+  //start at size 1 ; check if width and height are smaller than screen sizes ; if NOT : STOP
+  while (width < displayWidth && height < displayHeight) {
+    tft.setTextSize(currentSize);
+    tft.getTextBounds(text,  x, y,  &x1, &y1,   &width, &height);
+    if(width < displayWidth && height < displayHeight) {
+      maxSize = currentSize;
+      currentSize++;
+    }
+    else {
+      break;
+    }
+  }
+  return maxSize;
+}
+
+for(int8_t i = 0; i < numFrames; i++) {
+  sizes[i] = findMaxTextSize(lyrics[i]);
+}
+
+//could be an algorithm to determine if a string of a given size would fit on the screen AKA for each string find biggest size so it fits on the screen
+//uint8_t sizeLowercase=3, sizeUppercase=5, sizeFullScreen=8; 
+
 /*
 void printCentreLyrics(const String text[], uint8_t sizeLowercase, uint8_t sizeUppercase) {
   String temp[] = text;
@@ -81,28 +94,18 @@ void printCentreLyrics(const String text[], uint8_t sizeLowercase, uint8_t sizeU
 } 
 */
 
-void printCenteredString(char text[]) {
+//https://forum.arduino.cc/t/adafruit-oled-how-to-center-text/617181/5
+//https://forum.arduino.cc/t/adafruit-gfx-gettextbounds-cursor-position-vs-bounding-box-top-left/1239441
+void printCenteredString(char text[], uint8_t size) {
   uint16_t x  = 0, y  = 0, width=0, height=0;
   int16_t  x1 = 0, y1 = 0;
 
-  uint8_t size = 3;
-  uint8_t countUppercase=0, countLowercase=0;
-
-  
-  for (int i = strlen(text) - 1; i > 0; i--) {
-    if      (isupper(text[i])) { countUppercase += 1 ;}
-    else if (islower(text[i])) { countLowercase += 1 ;} 
-  }
-  if      (countUppercase == strlen(text)) { size = 5; }
-  else if (countLowercase == strlen(text)) { size = 3; } //unfigured
-  else { Serial.println("Error: ALL lyrics slides must be either LOWERCASE or UPPERCASE"); while(1); }    
-  
   tft.setTextSize(size);
 
   tft.getTextBounds(text,  x, y,  &x1, &y1,   &width, &height);
 
-  uint16_t cursorX = tft.width() /2 - width /2 - x1;
-  uint16_t cursorY = tft.height()/2 - height/2 - y1;
+  uint16_t cursorX = displayWidth /2 - width /2 - x1;
+  uint16_t cursorY = displayHeight/2 - height/2 - y1;
   tft.setCursor(cursorX, cursorY);
 
   tft.print(text);
@@ -147,10 +150,12 @@ void setup(void) {
   tft.setTextColor(WHITE);
 }
 
-void loop(void) { //DEMO
+void loop(void) {
   for (int i = 0; i < numFrames; i++) { //for every element in text do:
-    printCenteredString(lyrics[i]);
-    delay(1000); //unfigured ; flush may be more useful
+    printCenteredString(lyrics[i], sizes[i]);
+    tft.flush();
+    delay(500);
     tft.fillScreen(BLACK);
   }
+  delay(2000);
 }
