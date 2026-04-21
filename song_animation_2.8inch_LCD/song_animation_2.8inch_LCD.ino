@@ -35,15 +35,41 @@ char* lyrics[numFrames] = { //https://www.geeksforgeeks.org/c/array-of-strings-i
   "when I get you",
   "EVERYWHERE"
 };
+
+/* loop thru lyrics
+if a newline is found in lyrics:
+maxTextSizeMultiLine() 
+  cut it
+  fill a temp array of size [found new lines + 1] with cutted strings
+
+  total width  = width of longest string from the cutted ones (need helper function to find most-screen-taking aka longest string)
+  total height = summed heights of all the cutted string's heights (loop thru array of cutted , find individual heights)
+
+  find local cords of each string's desired centered position RELATIVE TO the rect we created
+
+  center such rectangle 
+
+  calculate back from local cords to global cords
+
+END RESULT:
+_________________________
+|  __________________   |
+|  |    STRING 1    |   |
+|  |LOOOOOOONGSTRING|   |
+|  |________________|   |
+|_______________________|
+
+*/
+
+
 uint8_t sizes[numFrames] = {0};
 
 uint8_t findMaxTextSize(const char* text) {
   uint16_t x  = 0, y  = 0, width=0, height=0;
   int16_t  x1 = 0, y1 = 0;
-  uint8_t maxSize=1;
-  uint8_t currentSize=1;
+  uint8_t maxSize=1, currentSize=1;
 
-  //start at size 1 ; check if width and height are smaller than screen sizes ; if NOT : STOP
+  //start at size 1 ; check if width and height are smaller than screen sizes ; if NOT - STOP
   while (width < displayWidth && height < displayHeight) {
     tft.setTextSize(currentSize);
     tft.getTextBounds(text,  x, y,  &x1, &y1,   &width, &height);
@@ -57,13 +83,11 @@ uint8_t findMaxTextSize(const char* text) {
   }
   return maxSize;
 }
-
+/* NEED MULTI STRING SUPPORT
 for(int8_t i = 0; i < numFrames; i++) {
   sizes[i] = findMaxTextSize(lyrics[i]);
 }
-
-//could be an algorithm to determine if a string of a given size would fit on the screen AKA for each string find biggest size so it fits on the screen
-//uint8_t sizeLowercase=3, sizeUppercase=5, sizeFullScreen=8; 
+*/
 
 /*
 void printCentreLyrics(const String text[], uint8_t sizeLowercase, uint8_t sizeUppercase) {
